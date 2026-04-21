@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gantt Roadmap — UI Redesign 2025</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+Thai:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;user-select:none}
+:root{
+  --bg:#0d0f14;--surface:#13161e;--surface2:#1a1e28;--surface3:#20263200;
+  --border:#232836;--border2:#2d3548;
+  --text:#d8e2f5;--text2:#7a8aaa;--text3:#3f4d68;
+  --w1:#3b82f6;--w2:#8b5cf6;--w3:#ec4899;--w4:#f59e0b;--w5:#10b981;
+  --milestone-mon:#f59e0b;--milestone-phase:#f43f5e;--today:#4ade80;
+  --danger:#ef4444;
+}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--text);font-family:'Noto Sans Thai',sans-serif;font-size:13px}
+
+/* ─── TOPBAR ─── */
+.topbar{height:48px;background:var(--surface);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 20px;gap:16px;flex-shrink:0;z-index:300;position:relative}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:3px;
+  background:linear-gradient(90deg,var(--w1),var(--w2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.sep{width:1px;height:22px;background:var(--border2)}
+.meta{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text3);letter-spacing:.5px}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.tbtn{background:var(--surface2);border:1px solid var(--border2);color:var(--text2);
+  padding:5px 12px;font-size:11px;font-family:'JetBrains Mono',monospace;cursor:pointer;
+  letter-spacing:.5px;transition:all .15s}
+.tbtn:hover{border-color:var(--w1);color:var(--w1)}
+.tbtn.primary{background:var(--w1);color:#fff;border-color:var(--w1)}
+.tbtn.primary:hover{background:#5a9bff}
+.today-badge{font-family:'JetBrains Mono',monospace;font-size:10px;padding:4px 10px;
+  background:rgba(74,222,128,.1);color:var(--today);border:1px solid rgba(74,222,128,.25);letter-spacing:1px}
+
+/* ─── LAYOUT ─── */
+.app{display:flex;flex-direction:column;height:calc(100vh - 48px)}
+.gantt-wrap{flex:1;overflow:hidden;display:flex;flex-direction:column}
+
+/* ─── GANTT HEAD ─── */
+.gantt-head{background:var(--surface2);border-bottom:1px solid var(--border2);
+  display:flex;flex-shrink:0;position:sticky;top:0;z-index:100}
+.head-fixed{display:flex;flex-shrink:0}
+.col-expand{width:32px;border-right:1px solid var(--border)}
+.col-task{width:220px;border-right:1px solid var(--border)}
+.col-assignee{width:110px;border-right:1px solid var(--border)}
+.col-status{width:80px;border-right:1px solid var(--border)}
+.col-dur{width:55px;border-right:1px solid var(--border)}
+.head-cell{padding:8px 10px;font-family:'JetBrains Mono',monospace;font-size:9px;
+  letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);
+  display:flex;align-items:center;height:100%}
+.head-days{display:flex;overflow:hidden;position:relative}
+.day-head{width:32px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;border-right:1px solid rgba(255,255,255,.03);
+  font-family:'JetBrains Mono',monospace;padding:4px 0;cursor:default}
+.day-head .dn{font-size:8px;color:var(--text3)}
+.day-head .dd{font-size:11px;font-weight:600;color:var(--text2)}
+.day-head.is-mon{background:rgba(245,158,11,.04)}
+.day-head.is-today{background:rgba(74,222,128,.1)}
+.day-head.is-today .dd{color:var(--today)}
+.week-band{position:absolute;top:0;left:0;right:0;height:3px}
+
+/* ─── GANTT BODY ─── */
+.gantt-body{flex:1;overflow:auto;position:relative}
+.gantt-inner{display:flex;flex-direction:column;min-height:100%}
+
+/* ─── GROUP ROW ─── */
+.group-row{display:flex;align-items:center;background:var(--surface2);
+  border-bottom:1px solid var(--border);position:sticky;z-index:20;cursor:pointer;
+  transition:background .12s}
+.group-row:hover{background:#1f2535}
+.group-fixed{display:flex;flex-shrink:0;align-items:center}
+.g-expand{width:32px;display:flex;align-items:center;justify-content:center;
+  color:var(--text3);font-size:11px;transition:transform .2s}
+.g-expand.open{transform:rotate(90deg)}
+.g-name{width:220px;padding:9px 8px 9px 0;font-weight:600;font-size:13px;
+  display:flex;align-items:center;gap:6px;overflow:hidden}
+.g-assignee{width:110px;padding:0 10px;font-size:12px;color:var(--text2)}
+.g-status{width:80px;padding:0 8px}
+.g-dur{width:55px;padding:0 8px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text3)}
+.g-badge{font-family:'Bebas Neue',sans-serif;font-size:12px;letter-spacing:1px;
+  padding:2px 7px;color:#fff;flex-shrink:0}
+.g-cells{flex:1;position:relative;height:38px;overflow:hidden}
+.g-day-bg{position:absolute;top:0;bottom:0;width:32px;border-right:1px solid rgba(255,255,255,.02)}
+.g-day-bg.is-mon{background:rgba(245,158,11,.03);border-right:1px solid rgba(245,158,11,.12)}
+.g-day-bg.is-today{background:rgba(74,222,128,.06)}
+
+/* ─── TASK ROW ─── */
+.task-row{display:flex;align-items:center;border-bottom:1px solid rgba(255,255,255,.025);
+  transition:background .1s;min-height:34px}
+.task-row:hover{background:rgba(255,255,255,.015)}
+.t-expand{width:32px;display:flex;align-items:center;justify-content:center;
+  color:var(--text3);font-size:10px;cursor:pointer;transition:transform .2s}
+.t-expand.open{transform:rotate(90deg)}
+.t-expand.leaf{color:transparent;pointer-events:none}
+.t-name{width:220px;padding:7px 8px 7px 0;font-size:12px;display:flex;align-items:flex-start;
+  gap:5px;overflow:hidden;cursor:pointer}
+.t-name:hover .t-text{text-decoration:underline;text-decoration-color:var(--text3)}
+.t-icon{font-size:12px;flex-shrink:0;margin-top:1px}
+.t-text{overflow:hidden;text-overflow:ellipsis;flex:1;line-height:1.4}
+.t-assignee{width:110px;padding:0 10px;font-size:11px;color:var(--text2);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.t-status{width:80px;padding:0 8px}
+.t-dur{width:55px;padding:0 8px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text3)}
+.status-pill{font-family:'JetBrains Mono',monospace;font-size:9px;padding:2px 6px;border-radius:1px;white-space:nowrap}
+
+/* subrow indent */
+.task-row.sub .t-name{padding-left:16px}
+
+/* ─── BAR AREA ─── */
+.bar-area{flex:1;position:relative;height:34px;overflow:hidden}
+.day-bg-cell{position:absolute;top:0;bottom:0;width:32px;border-right:1px solid rgba(255,255,255,.02)}
+.day-bg-cell.is-mon{border-right:1px solid rgba(245,158,11,.12);background:rgba(245,158,11,.02)}
+.day-bg-cell.is-today{background:rgba(74,222,128,.05)}
+
+.bar{position:absolute;top:6px;height:22px;border-radius:2px;cursor:grab;
+  display:flex;align-items:center;padding:0 7px;overflow:hidden;
+  box-shadow:0 2px 8px rgba(0,0,0,.35);transition:filter .15s,box-shadow .15s;z-index:5}
+.bar:hover{filter:brightness(1.12);box-shadow:0 3px 12px rgba(0,0,0,.5)}
+.bar.dragging{cursor:grabbing;filter:brightness(1.2);box-shadow:0 4px 20px rgba(0,0,0,.6);z-index:50;opacity:.9}
+.bar-label{font-size:10px;font-weight:600;overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,.5);pointer-events:none}
+.bar-resize{position:absolute;right:0;top:0;bottom:0;width:8px;cursor:col-resize;
+  background:rgba(255,255,255,.15);border-radius:0 2px 2px 0;
+  display:flex;align-items:center;justify-content:center;font-size:8px;color:rgba(255,255,255,.6)}
+.bar-resize:hover{background:rgba(255,255,255,.3)}
+
+/* milestone diamond */
+.milestone{position:absolute;top:9px;width:16px;height:16px;transform:rotate(45deg);
+  z-index:10;cursor:pointer;transition:transform .15s,box-shadow .15s}
+.milestone:hover{transform:rotate(45deg) scale(1.3)}
+.milestone.phase{background:var(--milestone-phase);box-shadow:0 0 8px rgba(244,63,94,.5)}
+.milestone.weekly{background:var(--milestone-mon);box-shadow:0 0 6px rgba(245,158,11,.45)}
+
+/* today line */
+.today-line{position:absolute;top:0;bottom:0;width:2px;background:var(--today);
+  z-index:30;pointer-events:none;box-shadow:0 0 8px rgba(74,222,128,.5)}
+.today-line::before{content:'TODAY';position:absolute;top:2px;left:4px;
+  font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:1px;
+  color:var(--today);white-space:nowrap;background:rgba(13,15,20,.8);padding:1px 4px}
+
+/* ─── MODAL ─── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;
+  display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+.overlay.open{opacity:1;pointer-events:all}
+.modal{background:var(--surface);border:1px solid var(--border2);width:520px;max-width:95vw;
+  max-height:90vh;overflow:auto;box-shadow:0 24px 60px rgba(0,0,0,.6);transform:translateY(10px);transition:transform .2s}
+.overlay.open .modal{transform:translateY(0)}
+.modal-head{padding:18px 22px 14px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between}
+.modal-title{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--w1)}
+.modal-body{padding:18px 22px}
+.modal-foot{padding:12px 22px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
+.fg{margin-bottom:14px}
+.fl{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;
+  color:var(--text3);margin-bottom:5px;display:block}
+.fi{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);
+  padding:8px 10px;font-family:'Noto Sans Thai',sans-serif;font-size:13px;outline:none;transition:border-color .15s}
+.fi:focus{border-color:var(--w1)}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.frow3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.fsel{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);
+  padding:8px 10px;font-family:'Noto Sans Thai',sans-serif;font-size:13px;outline:none;cursor:pointer}
+.fta{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);
+  padding:8px 10px;font-family:'Noto Sans Thai',sans-serif;font-size:12px;
+  outline:none;resize:vertical;min-height:60px;line-height:1.5}
+.fta:focus,.fi:focus,.fsel:focus{border-color:var(--w1)}
+.sub-list{border:1px solid var(--border);overflow:hidden;margin-top:6px}
+.sub-item{display:flex;align-items:center;gap:8px;padding:7px 10px;
+  border-bottom:1px solid var(--border);font-size:12px}
+.sub-item:last-child{border-bottom:none}
+.sub-del{background:transparent;border:none;color:var(--text3);cursor:pointer;font-size:14px;
+  padding:0 4px;transition:color .12s}
+.sub-del:hover{color:var(--danger)}
+.add-sub-row{display:flex;gap:8px;margin-top:6px}
+
+/* tooltip */
+.tip{position:fixed;background:var(--surface2);border:1px solid var(--border2);
+  padding:10px 13px;min-width:200px;z-index:600;pointer-events:none;
+  opacity:0;transition:opacity .15s;box-shadow:0 8px 24px rgba(0,0,0,.5);font-size:12px}
+.tip.show{opacity:1}
+.tip-title{font-weight:600;font-size:13px;margin-bottom:6px}
+.tip-row{display:flex;justify-content:space-between;gap:12px;margin-bottom:3px;font-size:11px}
+.tip-k{color:var(--text3);font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.5px}
+.tip-v{color:var(--text2)}
+
+/* legend */
+.legend{display:flex;align-items:center;gap:18px;padding:8px 20px;
+  background:var(--surface);border-top:1px solid var(--border);flex-wrap:wrap;flex-shrink:0}
+.li{display:flex;align-items:center;gap:6px;font-family:'JetBrains Mono',monospace;
+  font-size:9px;color:var(--text3);letter-spacing:.5px}
+.lb{width:20px;height:7px;border-radius:1px}
+.ld{width:10px;height:10px;transform:rotate(45deg)}
+.lline{width:2px;height:14px;box-shadow:0 0 5px rgba(74,222,128,.6)}
+
+/* scrollbar */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">GANTT</div>
+  <div class="sep"></div>
+  <div class="meta">UI REDESIGN 2025 · 17 MODULES · 5 WEEKS</div>
+  <div class="topbar-right">
+    <div class="today-badge" id="today-lbl">TODAY: 21 APR</div>
+    <button class="tbtn primary" onclick="openAdd()">＋ Add Task</button>
+  </div>
+</div>
+
+<div class="app">
+  <div class="gantt-wrap" id="gantt-wrap">
+    <div class="gantt-head" id="gantt-head">
+      <div class="head-fixed">
+        <div class="col-expand head-cell"></div>
+        <div class="col-task head-cell">Task / Module</div>
+        <div class="col-assignee head-cell">Assignee</div>
+        <div class="col-status head-cell">Status</div>
+        <div class="col-dur head-cell">Days</div>
+      </div>
+      <div class="head-days" id="head-days"></div>
+    </div>
+    <div class="gantt-body" id="gantt-body">
+      <div class="gantt-inner" id="gantt-inner"></div>
+    </div>
+  </div>
+  <div class="legend">
+    <div class="li"><div class="lb" style="background:var(--w1)"></div>Design System</div>
+    <div class="li"><div class="lb" style="background:var(--w2)"></div>Batch A</div>
+    <div class="li"><div class="lb" style="background:var(--w3)"></div>Batch B</div>
+    <div class="li"><div class="lb" style="background:var(--w4)"></div>Batch C</div>
+    <div class="li"><div class="lb" style="background:var(--w5)"></div>Handoff</div>
+    <div class="li"><div class="ld" style="background:var(--milestone-phase)"></div>Phase Milestone</div>
+    <div class="li"><div class="ld" style="background:var(--milestone-mon)"></div>Monday Review</div>
+    <div class="li"><div class="lline" style="background:var(--today)"></div>Today</div>
+    <div class="li" style="margin-left:auto;color:var(--text2)">🖱 Drag bar = เลื่อน · Drag ขอบขวา = ยืด</div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="overlay" id="overlay" onclick="overlayClick(event)">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title" id="modal-title">ADD TASK</div>
+      <button class="tbtn" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-foot">
+      <button class="tbtn" onclick="closeModal()">ยกเลิก</button>
+      <button class="tbtn primary" onclick="saveModal()">บันทึก</button>
+    </div>
+  </div>
+</div>
+<div class="tip" id="tip"></div>
+
+<script>
+/* ═══════════════════════════════════
+   DATA
+═══════════════════════════════════ */
+const DAY_W = 32;
+const START = new Date(2025,3,21); // Mon 21 Apr
+const TODAY = new Date(2025,3,21);
+const WC = ['#3b82f6','#8b5cf6','#ec4899','#f59e0b','#10b981'];
+const STATUS_CFG = {
+  'To Do':      {bg:'rgba(120,130,160,.12)',c:'#7a8aaa'},
+  'In Progress':{bg:'rgba(245,158,11,.14)', c:'#f59e0b'},
+  'Review':     {bg:'rgba(59,130,246,.14)', c:'#3b82f6'},
+  'Done':       {bg:'rgba(16,185,129,.14)', c:'#10b981'},
+};
+
+// Only working days (Mon-Fri). dayOffset = working-day index from START
+// We'll store start/dur as working-day indices
+function buildWorkDays(n){
+  const days=[]; let d=new Date(START);
+  while(days.length<n){
+    const dow=d.getDay();
+    if(dow!==0&&dow!==6) days.push(new Date(d));
+    d.setDate(d.getDate()+1);
+  }
+  return days;
+}
+const WORK_DAYS = buildWorkDays(25); // 5 weeks × 5 days
+const TOTAL_WD = WORK_DAYS.length;
+
+function wdIdx(date){
+  return WORK_DAYS.findIndex(d=>d.toDateString()===date.toDateString());
+}
+function addWD(idx,dur){
+  return Math.min(idx+dur, TOTAL_WD-1);
+}
+
+let tasks = [
+  // WEEK 1 — Design System
+  {id:'g1',type:'group',name:'Week 1 — Design System Sprint',icon:'🎨',color:WC[0],
+   assignee:'',status:'In Progress',start:0,dur:5,expanded:true,
+   subtasks:[
+     {id:'g1t1',name:'Design Direction Workshop',icon:'🎨',assignee:'',status:'In Progress',start:0,dur:1,notes:'ตกลง Moodboard, Style, Color direction',expanded:false,subtasks:[]},
+     {id:'g1t2',name:'Color & Typography Tokens',icon:'🎨',assignee:'',status:'To Do',start:1,dur:2,notes:'Primary/Secondary colors, Font scale, Spacing',expanded:false,subtasks:[]},
+     {id:'g1t3',name:'Core Components (Atoms)',icon:'⚙️',assignee:'',status:'To Do',start:2,dur:3,notes:'Button, Input, Badge, Checkbox, Radio',expanded:false,subtasks:[]},
+     {id:'g1t4',name:'Layout & Navigation Components',icon:'🧩',assignee:'',status:'To Do',start:4,dur:1,notes:'Sidebar, Breadcrumb, Tab, Page Container',expanded:false,subtasks:[]},
+   ]},
+  // WEEK 2 — Batch A
+  {id:'g2',type:'group',name:'Week 2 — Batch A (High Priority)',icon:'🔥',color:WC[1],
+   assignee:'',status:'To Do',start:5,dur:5,expanded:true,
+   subtasks:[
+     {id:'g2t1',name:'M01 — Dashboard / Overview',icon:'📊',assignee:'',status:'To Do',start:5,dur:3,notes:'หน้าหลัก — KPI Cards, Chart, Summary',expanded:false,
+      subtasks:[
+        {id:'g2t1s1',name:'M01 Homepage layout',icon:'',assignee:'',status:'To Do',start:5,dur:1,notes:'',expanded:false,subtasks:[]},
+        {id:'g2t1s2',name:'M01 KPI Components',icon:'',assignee:'',status:'To Do',start:6,dur:1,notes:'',expanded:false,subtasks:[]},
+        {id:'g2t1s3',name:'M01 Chart integration',icon:'',assignee:'',status:'To Do',start:7,dur:1,notes:'',expanded:false,subtasks:[]},
+      ]},
+     {id:'g2t2',name:'M02 — List & Search Module',icon:'🔍',assignee:'',status:'To Do',start:5,dur:3,notes:'Master template สำหรับ List view',expanded:false,subtasks:[]},
+     {id:'g2t3',name:'M03 — Form Entry Module',icon:'📝',assignee:'',status:'To Do',start:7,dur:3,notes:'Master Form template — reusable',expanded:false,subtasks:[]},
+     {id:'g2t4',name:'M04 — Report / Export',icon:'📄',assignee:'',status:'To Do',start:8,dur:2,notes:'Report view + Export pattern',expanded:false,subtasks:[]},
+   ]},
+  // WEEK 3 — Batch B
+  {id:'g3',type:'group',name:'Week 3 — Batch B (Mid Priority)',icon:'📋',color:WC[2],
+   assignee:'',status:'To Do',start:10,dur:5,expanded:true,
+   subtasks:[
+     {id:'g3t1',name:'M05 — User Management',icon:'👤',assignee:'',status:'To Do',start:10,dur:2,notes:'List + Detail + Form pattern',expanded:false,subtasks:[]},
+     {id:'g3t2',name:'M06 — Settings Module',icon:'⚙️',assignee:'',status:'To Do',start:10,dur:2,notes:'Tab-based settings pages',expanded:false,subtasks:[]},
+     {id:'g3t3',name:'M07 — Notification Center',icon:'🔔',assignee:'',status:'To Do',start:12,dur:2,notes:'Notification list + detail + badge',expanded:false,subtasks:[]},
+     {id:'g3t4',name:'M08 — Approval Workflow',icon:'✔️',assignee:'',status:'To Do',start:12,dur:2,notes:'Status flow + Action buttons',expanded:false,subtasks:[]},
+     {id:'g3t5',name:'M09 — Analytics Module',icon:'📈',assignee:'',status:'To Do',start:13,dur:2,notes:'Chart + KPI + Filter',expanded:false,subtasks:[]},
+   ]},
+  // WEEK 4 — Batch C
+  {id:'g4',type:'group',name:'Week 4 — Batch C (Remaining)',icon:'📦',color:WC[3],
+   assignee:'',status:'To Do',start:15,dur:5,expanded:true,
+   subtasks:[
+     {id:'g4t1',name:'M10 — Document Management',icon:'📁',assignee:'',status:'To Do',start:15,dur:2,notes:'File list + Preview + Upload',expanded:false,subtasks:[]},
+     {id:'g4t2',name:'M11 — Calendar / Schedule',icon:'📅',assignee:'',status:'To Do',start:15,dur:3,notes:'Calendar view + Event detail',expanded:false,subtasks:[]},
+     {id:'g4t3',name:'M12 — Inventory',icon:'📦',assignee:'',status:'To Do',start:17,dur:2,notes:'Table-heavy + Stock status',expanded:false,subtasks:[]},
+     {id:'g4t4',name:'M13 — Customer Profile',icon:'🏢',assignee:'',status:'To Do',start:17,dur:2,notes:'Profile card + History',expanded:false,subtasks:[]},
+     {id:'g4t5',name:'M14 — Finance / Payment',icon:'💳',assignee:'',status:'To Do',start:19,dur:2,notes:'Transaction list + Summary',expanded:false,subtasks:[]},
+     {id:'g4t6',name:'M15–M17 — Remaining',icon:'🧩',assignee:'',status:'To Do',start:19,dur:2,notes:'Apply existing patterns',expanded:false,subtasks:[]},
+   ]},
+  // WEEK 5 — Handoff
+  {id:'g5',type:'group',name:'Week 5 — Review & Handoff',icon:'🚀',color:WC[4],
+   assignee:'',status:'To Do',start:20,dur:5,expanded:true,
+   subtasks:[
+     {id:'g5t1',name:'Visual QA — All Modules',icon:'🔍',assignee:'',status:'To Do',start:20,dur:3,notes:'Consistency check: spacing, color, font',expanded:false,subtasks:[]},
+     {id:'g5t2',name:'Stakeholder Review',icon:'👥',assignee:'',status:'To Do',start:21,dur:2,notes:'Present all 17 modules for sign-off',expanded:false,subtasks:[]},
+     {id:'g5t3',name:'Dev Handoff Prep',icon:'💻',assignee:'',status:'To Do',start:23,dur:2,notes:'Spec, Annotation, Figma cleanup',expanded:false,subtasks:[]},
+     {id:'g5t4',name:'Final Polish',icon:'✨',assignee:'',status:'To Do',start:23,dur:2,notes:'Layer names, page structure, remove drafts',expanded:false,subtasks:[]},
+   ]},
+];
+
+// Phase milestones
+let milestones = [
+  {id:'m1',day:4, label:'Design System v1.0',type:'phase'},
+  {id:'m2',day:9, label:'Batch A Done',type:'phase'},
+  {id:'m3',day:14,label:'Batch B Done',type:'phase'},
+  {id:'m4',day:19,label:'All Modules Done',type:'phase'},
+  {id:'m5',day:24,label:'🎉 Project Complete',type:'phase'},
+];
+
+// Auto Monday review milestones
+function getMondayReviews(){
+  return WORK_DAYS
+    .map((d,i)=>({d,i}))
+    .filter(({d})=>d.getDay()===1 && d>START) // Mon after start
+    .map(({d,i})=>({id:'mon_'+i, day:i, label:'Weekly Review', type:'weekly'}));
+}
+
+let nextId = 100;
+
+/* ═══════════════════════════════════
+   RENDER
+═══════════════════════════════════ */
+function render(){
+  renderHead();
+  renderBody();
+}
+
+function renderHead(){
+  const hd = document.getElementById('head-days');
+  hd.innerHTML = '';
+  WORK_DAYS.forEach((d,i)=>{
+    const dow=d.getDay();
+    const isMon=dow===1;
+    const isToday=d.toDateString()===TODAY.toDateString();
+    const dayNames=['อา','จ','อ','พ','พฤ','ศ','ส'];
+    const div=document.createElement('div');
+    div.className='day-head'+(isMon?' is-mon':'')+(isToday?' is-today':'');
+    div.style.width=DAY_W+'px';
+    div.innerHTML=`<span class="dn">${dayNames[dow]}</span><span class="dd">${d.getDate()}</span>`;
+    hd.appendChild(div);
+  });
+}
+
+function renderBody(){
+  const inner=document.getElementById('gantt-inner');
+  inner.innerHTML='';
+  const todayIdx=wdIdx(TODAY);
+  tasks.forEach(g=>inner.appendChild(buildGroup(g,todayIdx)));
+  // today line overlay (only in bar areas — done per row)
+}
+
+function buildGroup(g, todayIdx){
+  const wrap=document.createElement('div');
+  // Group header row
+  const gRow=document.createElement('div');
+  gRow.className='group-row';
+  gRow.dataset.id=g.id;
+
+  const expanded=g.expanded!==false;
+  gRow.innerHTML=`
+    <div class="head-fixed" style="pointer-events:none">
+      <div class="col-expand g-expand ${expanded?'open':''}">▶</div>
+      <div class="col-task g-name">
+        <span class="g-badge" style="background:${g.color}">${g.name.split('—')[0].trim()}</span>
+        <span style="font-size:12px;color:${g.color};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(g.name.split('—')[1]||'').trim()}</span>
+      </div>
+      <div class="col-assignee g-assignee">${g.assignee||'—'}</div>
+      <div class="col-status g-status">${statusPill(g.status)}</div>
+      <div class="col-dur g-dur">${g.dur}d</div>
+    </div>
+    <div class="g-cells" id="gcells-${g.id}">${buildDayBgs(todayIdx,38)}</div>`;
+
+  // bar on group
+  const gcells=gRow.querySelector('.g-cells');
+  const bar=makeBar(g,g.color,todayIdx,true);
+  gcells.appendChild(bar);
+
+  gRow.querySelector('.g-expand').addEventListener('click',e=>{e.stopPropagation();toggleGroup(g.id)});
+  gRow.addEventListener('click',e=>{if(!e.target.closest('.g-expand'))openEdit(g.id)});
+  gRow.addEventListener('mouseenter',e=>showTip(e,g));
+  gRow.addEventListener('mouseleave',hideTip);
+
+  wrap.appendChild(gRow);
+
+  // subtasks
+  const subWrap=document.createElement('div');
+  subWrap.id='sub-'+g.id;
+  subWrap.style.display=expanded?'block':'none';
+
+  if(g.subtasks){
+    g.subtasks.forEach(t=>subWrap.appendChild(buildTask(t,g.color,todayIdx,false)));
+  }
+  wrap.appendChild(subWrap);
+  return wrap;
+}
+
+function buildTask(t, color, todayIdx, isSub){
+  const wrap=document.createElement('div');
+  const hasChildren=t.subtasks&&t.subtasks.length>0;
+  const expanded=t.expanded!==false;
+
+  const row=document.createElement('div');
+  row.className='task-row'+(isSub?' sub':'');
+  row.dataset.id=t.id;
+
+  row.innerHTML=`
+    <div style="display:flex;align-items:center;flex-shrink:0">
+      <div class="col-expand t-expand ${hasChildren?(expanded?'open':''):' leaf'}">${hasChildren?'▶':''}</div>
+      <div class="col-task t-name">
+        <span class="t-icon">${t.icon||'▸'}</span>
+        <span class="t-text">${t.name}</span>
+      </div>
+      <div class="col-assignee t-assignee">${t.assignee||'—'}</div>
+      <div class="col-status t-status">${statusPill(t.status)}</div>
+      <div class="col-dur t-dur">${t.dur}d</div>
+    </div>
+    <div class="bar-area" id="ba-${t.id}">${buildDayBgs(todayIdx,34)}</div>`;
+
+  const ba=row.querySelector('.bar-area');
+  const bar=makeBar(t,color,todayIdx,false);
+  ba.appendChild(bar);
+
+  // today line
+  if(todayIdx>=0&&todayIdx<TOTAL_WD){
+    const tl=document.createElement('div');
+    tl.className='today-line';
+    tl.style.left=(todayIdx*DAY_W+DAY_W/2-1)+'px';
+    ba.appendChild(tl);
+  }
+
+  // Milestones in this row's area (only phase ones on group row, monday on all)
+  const allMs=[...milestones,...getMondayReviews()];
+  allMs.forEach(ms=>{
+    const el=document.createElement('div');
+    el.className='milestone '+ms.type;
+    el.style.left=(ms.day*DAY_W+8)+'px';
+    el.addEventListener('mouseenter',e=>showMsTip(e,ms));
+    el.addEventListener('mouseleave',hideTip);
+    ba.appendChild(el);
+  });
+
+  // expand toggle
+  if(hasChildren){
+    row.querySelector('.t-expand').addEventListener('click',e=>{
+      e.stopPropagation();
+      t.expanded=!t.expanded;
+      render();
+    });
+  }
+
+  row.querySelector('.t-name').addEventListener('click',()=>openEdit(t.id));
+  row.addEventListener('mouseenter',e=>showTip(e,t));
+  row.addEventListener('mouseleave',hideTip);
+
+  wrap.appendChild(row);
+
+  // children
+  if(hasChildren){
+    const childWrap=document.createElement('div');
+    childWrap.style.display=expanded?'block':'none';
+    t.subtasks.forEach(st=>childWrap.appendChild(buildTask(st,color,todayIdx,true)));
+    wrap.appendChild(childWrap);
+  }
+
+  return wrap;
+}
+
+function buildDayBgs(todayIdx,h){
+  let s='';
+  WORK_DAYS.forEach((d,i)=>{
+    const isMon=d.getDay()===1;
+    const isToday=i===todayIdx;
+    s+=`<div class="day-bg-cell${isMon?' is-mon':''}${isToday?' is-today':''}" style="left:${i*DAY_W}px;height:${h}px"></div>`;
+  });
+  return s;
+}
+
+function makeBar(task, color, todayIdx, isGroup){
+  const bar=document.createElement('div');
+  bar.className='bar';
+  const s=Math.max(0,Math.min(task.start,TOTAL_WD-1));
+  const d=Math.max(1,task.dur);
+  bar.style.left=(s*DAY_W)+'px';
+  bar.style.width=(d*DAY_W-4)+'px';
+  bar.style.background=color;
+  bar.style.top=isGroup?'8px':'6px';
+  bar.style.opacity=task.status==='Done'?'.45':'1';
+
+  bar.innerHTML=`<span class="bar-label">${d>=2?task.name:''}</span><span class="bar-resize">⇔</span>`;
+
+  // Drag-to-move
+  bar.addEventListener('mousedown',e=>{
+    if(e.target.classList.contains('bar-resize'))return;
+    e.preventDefault();
+    dragMove(e,task,bar,color);
+  });
+  // Drag-to-resize
+  bar.querySelector('.bar-resize').addEventListener('mousedown',e=>{
+    e.preventDefault();
+    e.stopPropagation();
+    dragResize(e,task,bar);
+  });
+
+  return bar;
+}
+
+/* ═══════════════════════════════════
+   DRAG
+═══════════════════════════════════ */
+function getBarArea(taskId){
+  return document.getElementById('ba-'+taskId);
+}
+
+function dragMove(e,task,bar,color){
+  bar.classList.add('dragging');
+  const startX=e.clientX;
+  const startDay=task.start;
+
+  function onMove(e2){
+    const dx=e2.clientX-startX;
+    const delta=Math.round(dx/DAY_W);
+    const newStart=Math.max(0,Math.min(startDay+delta,TOTAL_WD-task.dur));
+    task.start=newStart;
+    bar.style.left=(newStart*DAY_W)+'px';
+    showDragTip(e2,task);
+  }
+  function onUp(){
+    bar.classList.remove('dragging');
+    document.removeEventListener('mousemove',onMove);
+    document.removeEventListener('mouseup',onUp);
+    hideTip();
+    render();
+  }
+  document.addEventListener('mousemove',onMove);
+  document.addEventListener('mouseup',onUp);
+}
+
+function dragResize(e,task,bar){
+  bar.classList.add('dragging');
+  const startX=e.clientX;
+  const startDur=task.dur;
+
+  function onMove(e2){
+    const dx=e2.clientX-startX;
+    const delta=Math.round(dx/DAY_W);
+    const newDur=Math.max(1,Math.min(startDur+delta,TOTAL_WD-task.start));
+    task.dur=newDur;
+    bar.style.width=(newDur*DAY_W-4)+'px';
+    showDragTip(e2,task);
+  }
+  function onUp(){
+    bar.classList.remove('dragging');
+    document.removeEventListener('mousemove',onMove);
+    document.removeEventListener('mouseup',onUp);
+    hideTip();
+    render();
+  }
+  document.addEventListener('mousemove',onMove);
+  document.addEventListener('mouseup',onUp);
+}
+
+/* ═══════════════════════════════════
+   TOOLTIP
+═══════════════════════════════════ */
+function statusPill(s){
+  const c=STATUS_CFG[s]||STATUS_CFG['To Do'];
+  return `<span class="status-pill" style="background:${c.bg};color:${c.c}">${s}</span>`;
+}
+function fmtDate(d){return d?d.toLocaleDateString('th-TH',{day:'numeric',month:'short'}):'?'}
+function showTip(e,t){
+  const start=WORK_DAYS[t.start];
+  const end=WORK_DAYS[Math.min(t.start+t.dur-1,TOTAL_WD-1)];
+  const tip=document.getElementById('tip');
+  tip.innerHTML=`<div class="tip-title">${t.icon||''} ${t.name}</div>
+    <div class="tip-row"><span class="tip-k">เริ่ม</span><span class="tip-v">${fmtDate(start)}</span></div>
+    <div class="tip-row"><span class="tip-k">ถึง</span><span class="tip-v">${fmtDate(end)}</span></div>
+    <div class="tip-row"><span class="tip-k">ระยะเวลา</span><span class="tip-v">${t.dur} working days</span></div>
+    <div class="tip-row"><span class="tip-k">Assignee</span><span class="tip-v">${t.assignee||'—'}</span></div>
+    <div class="tip-row"><span class="tip-k">Status</span><span class="tip-v">${t.status}</span></div>
+    ${t.notes?`<div style="margin-top:6px;font-size:10px;color:var(--text3);border-top:1px solid var(--border);padding-top:6px">${t.notes}</div>`:''}`;
+  tip.classList.add('show');
+  moveTip(e);
+}
+function showMsTip(e,ms){
+  const d=WORK_DAYS[ms.day];
+  const tip=document.getElementById('tip');
+  tip.innerHTML=`<div class="tip-title">${ms.type==='phase'?'◆ Phase Milestone':'📅 Weekly Review'}</div>
+    <div class="tip-row"><span class="tip-k">วัน</span><span class="tip-v">${fmtDate(d)}</span></div>
+    <div class="tip-row"><span class="tip-k">label</span><span class="tip-v">${ms.label}</span></div>`;
+  tip.classList.add('show');
+  moveTip(e);
+}
+function showDragTip(e,t){
+  const start=WORK_DAYS[t.start];
+  const end=WORK_DAYS[Math.min(t.start+t.dur-1,TOTAL_WD-1)];
+  const tip=document.getElementById('tip');
+  tip.innerHTML=`<div class="tip-title">${t.name}</div>
+    <div class="tip-row"><span class="tip-k">เริ่ม</span><span class="tip-v">${fmtDate(start)}</span></div>
+    <div class="tip-row"><span class="tip-k">ถึง</span><span class="tip-v">${fmtDate(end)}</span></div>
+    <div class="tip-row"><span class="tip-k">Duration</span><span class="tip-v">${t.dur} days</span></div>`;
+  tip.classList.add('show');
+  moveTip(e);
+}
+function hideTip(){document.getElementById('tip').classList.remove('show')}
+function moveTip(e){
+  const tip=document.getElementById('tip');
+  const x=Math.min(e.clientX+14,window.innerWidth-240);
+  const y=Math.min(e.clientY-10,window.innerHeight-160);
+  tip.style.left=x+'px';
+  tip.style.top=y+'px';
+}
+document.addEventListener('mousemove',e=>{
+  if(document.getElementById('tip').classList.contains('show'))moveTip(e);
+});
+
+/* ═══════════════════════════════════
+   GROUP TOGGLE
+═══════════════════════════════════ */
+function toggleGroup(id){
+  const g=findTask(id);
+  if(!g)return;
+  g.expanded=!g.expanded;
+  render();
+}
+
+/* ═══════════════════════════════════
+   FIND / EDIT
+═══════════════════════════════════ */
+function findTask(id, list=tasks, parent=null){
+  for(const t of list){
+    if(t.id===id)return{task:t,list,parent};
+    if(t.subtasks){
+      const r=findTask(id,t.subtasks,t);
+      if(r)return r;
+    }
+  }
+  return null;
+}
+
+let editingId=null;
+let pendingSubs=[];
+let addingParentId=null;
+
+function openEdit(id){
+  const res=findTask(id);
+  if(!res)return;
+  const t=res.task;
+  editingId=id;
+  pendingSubs=JSON.parse(JSON.stringify(t.subtasks||[]));
+  document.getElementById('modal-title').textContent='EDIT — '+t.name;
+  renderModalBody(t);
+  document.getElementById('overlay').classList.add('open');
+}
+
+function openAdd(parentId=null){
+  editingId=null;
+  addingParentId=parentId;
+  pendingSubs=[];
+  document.getElementById('modal-title').textContent= parentId?'ADD SUB-TASK':'ADD TASK';
+  const blank={name:'',icon:'📋',assignee:'',status:'To Do',start:0,dur:3,notes:'',subtasks:[]};
+  renderModalBody(blank);
+  document.getElementById('overlay').classList.add('open');
+}
+
+function renderModalBody(t){
+  const s=WORK_DAYS[Math.max(0,t.start)];
+  const body=document.getElementById('modal-body');
+  body.innerHTML=`
+    <div class="frow">
+      <div class="fg"><label class="fl">ชื่อ Task</label><input class="fi" id="f-name" value="${esc(t.name)}" placeholder="Module name..."></div>
+      <div class="fg"><label class="fl">Icon</label><input class="fi" id="f-icon" value="${esc(t.icon||'')}" placeholder="📋"></div>
+    </div>
+    <div class="frow3">
+      <div class="fg"><label class="fl">Assignee</label><input class="fi" id="f-assignee" value="${esc(t.assignee||'')}" placeholder="ชื่อคน..."></div>
+      <div class="fg"><label class="fl">Status</label>
+        <select class="fsel" id="f-status">
+          ${['To Do','In Progress','Review','Done'].map(s2=>`<option${t.status===s2?' selected':''}>${s2}</option>`).join('')}
+        </select>
+      </div>
+      <div class="fg"><label class="fl">Color (Group)</label>
+        <select class="fsel" id="f-color">
+          ${['#3b82f6','#8b5cf6','#ec4899','#f59e0b','#10b981'].map(c=>`<option value="${c}"${(t.color===c||(!t.color&&c==='#3b82f6'))?' selected':''}>${c}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="frow">
+      <div class="fg"><label class="fl">วันเริ่ม (Working Day Index 0–${TOTAL_WD-1})</label>
+        <input class="fi" id="f-start" type="number" min="0" max="${TOTAL_WD-1}" value="${t.start}">
+        <div style="font-size:10px;color:var(--text3);margin-top:4px">${fmtDate(WORK_DAYS[t.start])}</div>
+      </div>
+      <div class="fg"><label class="fl">ระยะเวลา (Working Days)</label>
+        <input class="fi" id="f-dur" type="number" min="1" max="${TOTAL_WD}" value="${t.dur}"></div>
+    </div>
+    <div class="fg"><label class="fl">หมายเหตุ / Details</label>
+      <textarea class="fta" id="f-notes">${esc(t.notes||'')}</textarea>
+    </div>
+    <div class="fg">
+      <label class="fl">Sub-tasks</label>
+      <div class="sub-list" id="sub-list">${renderSubList()}</div>
+      <div class="add-sub-row">
+        <input class="fi" id="new-sub" placeholder="ชื่อ sub-task..." style="flex:1">
+        <button class="tbtn" onclick="addSub()">＋ Add Sub</button>
+      </div>
+    </div>`;
+
+  document.getElementById('f-start').addEventListener('input',function(){
+    const idx=parseInt(this.value)||0;
+    const d=WORK_DAYS[Math.max(0,Math.min(idx,TOTAL_WD-1))];
+    this.nextElementSibling.textContent=fmtDate(d);
+  });
+}
+
+function renderSubList(){
+  if(!pendingSubs.length)return '<div style="padding:8px 10px;font-size:11px;color:var(--text3)">ยังไม่มี sub-task</div>';
+  return pendingSubs.map((s,i)=>`
+    <div class="sub-item">
+      <span style="font-size:12px;flex:1">${s.name}</span>
+      <span style="font-family:\'JetBrains Mono\',monospace;font-size:10px;color:var(--text3);margin-right:8px">${s.dur}d</span>
+      <button class="sub-del" onclick="delSub(${i})">✕</button>
+    </div>`).join('');
+}
+
+function addSub(){
+  const inp=document.getElementById('new-sub');
+  const name=inp.value.trim();
+  if(!name)return;
+  pendingSubs.push({id:'s'+(nextId++),name,icon:'',assignee:'',status:'To Do',start:0,dur:1,notes:'',expanded:false,subtasks:[]});
+  inp.value='';
+  document.getElementById('sub-list').innerHTML=renderSubList();
+}
+
+function delSub(i){
+  pendingSubs.splice(i,1);
+  document.getElementById('sub-list').innerHTML=renderSubList();
+}
+
+function saveModal(){
+  const name=document.getElementById('f-name').value.trim();
+  if(!name){alert('กรุณากรอกชื่อ');return;}
+  const data={
+    name,
+    icon:document.getElementById('f-icon').value,
+    assignee:document.getElementById('f-assignee').value.trim(),
+    status:document.getElementById('f-status').value,
+    color:document.getElementById('f-color').value,
+    start:Math.max(0,Math.min(parseInt(document.getElementById('f-start').value)||0,TOTAL_WD-1)),
+    dur:Math.max(1,parseInt(document.getElementById('f-dur').value)||1),
+    notes:document.getElementById('f-notes').value,
+    subtasks:pendingSubs,
+  };
+
+  if(editingId){
+    const res=findTask(editingId);
+    if(res){Object.assign(res.task,data);}
+  } else {
+    const newTask={id:'t'+(nextId++),type:addingParentId?'task':'group',...data,expanded:true};
+    if(addingParentId){
+      const res=findTask(addingParentId);
+      if(res){res.task.subtasks=res.task.subtasks||[];res.task.subtasks.push(newTask);}
+    } else {
+      tasks.push(newTask);
+    }
+  }
+  closeModal();
+  render();
+}
+
+function closeModal(){
+  document.getElementById('overlay').classList.remove('open');
+  editingId=null;addingParentId=null;
+}
+function overlayClick(e){if(e.target.id==='overlay')closeModal();}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+
+/* ─── sync head scroll ─── */
+document.getElementById('gantt-body').addEventListener('scroll',function(){
+  document.getElementById('head-days').parentElement.scrollLeft=this.scrollLeft;
+  document.getElementById('head-days').style.transform=`translateX(-${this.scrollLeft}px)`;
+});
+
+// fix: head-days overflow hidden, translate with body scroll
+document.getElementById('head-days').style.overflow='visible';
+
+/* ─── init ─── */
+document.getElementById('today-lbl').textContent=
+  'TODAY: '+TODAY.toLocaleDateString('en-GB',{day:'2-digit',month:'short'}).toUpperCase();
+
+render();
+</script>
+</body>
+</html>
