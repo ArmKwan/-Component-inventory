@@ -837,6 +837,7 @@ document.getElementById('today-lbl').textContent=
 
 render();
 </script>
+<<<<<<< HEAD:gantt-firebase.html
 
 <!-- ═══════════ FIREBASE ═══════════
   วาง firebaseConfig ของคุณแทนค่า YOUR_... ด้านล่าง
@@ -921,5 +922,30 @@ window.saveModal = function(){
   style="position:fixed;bottom:16px;right:16px;width:10px;height:10px;border-radius:50%;
   background:#48567a;border:2px solid rgba(255,255,255,.15);z-index:999;
   transition:background .3s;cursor:default"></div>
+=======
+  <script type="module">
+  // Import the functions you need from the SDKs you need
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-analytics.js";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
+
+  // Your web app's Firebase configuration
+  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+  const firebaseConfig = {
+    apiKey: "AIzaSyBSBjVIpUyKbFul4qNEIt3GAQUr6eiXl3I",
+    authDomain: "component-inventory-ec3da.firebaseapp.com",
+    projectId: "component-inventory-ec3da",
+    storageBucket: "component-inventory-ec3da.firebasestorage.app",
+    messagingSenderId: "855122504604",
+    appId: "1:855122504604:web:3ed8edad77320abec5f659",
+    measurementId: "G-N1TD22PPP7"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+</script>
+>>>>>>> ee471367c3e950f7af8948ef622d6d50b683fa3b:gantt-roadmap-v2.html
 </body>
 </html>
