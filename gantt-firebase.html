@@ -829,8 +829,6 @@ document.getElementById('gantt-body').addEventListener('scroll',function(){
   document.getElementById('head-days').parentElement.scrollLeft=this.scrollLeft;
   document.getElementById('head-days').style.transform=`translateX(-${this.scrollLeft}px)`;
 });
-
-// fix: head-days overflow hidden, translate with body scroll
 document.getElementById('head-days').style.overflow='visible';
 
 /* ─── init ─── */
@@ -839,5 +837,89 @@ document.getElementById('today-lbl').textContent=
 
 render();
 </script>
+
+<!-- ═══════════ FIREBASE ═══════════
+  วาง firebaseConfig ของคุณแทนค่า YOUR_... ด้านล่าง
+  ดูค่าได้จาก Firebase Console → Project Settings → Your apps
+═══════════════════════════════════ -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getFirestore, doc, setDoc, onSnapshot }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+const firebaseConfig = {
+  apiKey:            "YOUR_API_KEY",
+  authDomain:        "YOUR_PROJECT_ID.firebaseapp.com",
+  projectId:         "YOUR_PROJECT_ID",
+  storageBucket:     "YOUR_PROJECT_ID.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId:             "YOUR_APP_ID"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+const GANTT_DOC = doc(db, 'gantt', 'roadmap'); // เก็บทั้ง tasks array ใน doc เดียว
+
+let isSyncing = false; // ป้องกัน render loop
+
+/* ── Save: เขียน tasks ทั้งหมดลง Firestore ── */
+window.fbSaveTasks = async function(){
+  if(isSyncing) return;
+  document.getElementById('fb-dot').style.background='#f59e0b'; // สีเหลือง = saving
+  try {
+    await setDoc(GANTT_DOC, { tasks: JSON.stringify(tasks), updatedAt: Date.now() });
+    document.getElementById('fb-dot').style.background='#22c55e'; // สีเขียว = saved
+  } catch(e){
+    document.getElementById('fb-dot').style.background='#ef4444'; // สีแดง = error
+    console.error('Firebase save error:', e);
+  }
+};
+
+/* ── Real-time listener: Firestore → tasks array ── */
+onSnapshot(GANTT_DOC, (snap) => {
+  if(!snap.exists()) {
+    // ครั้งแรก: ยังไม่มีข้อมูลใน Firestore — seed ข้อมูล default
+    window.fbSaveTasks();
+    return;
+  }
+  const remote = snap.data();
+  // ถ้า updatedAt ต่างจากของเรา = มีคนอื่นอัพเดท → sync
+  isSyncing = true;
+  tasks = JSON.parse(remote.tasks);
+  render();
+  isSyncing = false;
+  document.getElementById('fb-dot').style.background='#22c55e';
+  document.getElementById('fb-dot').title = 'Synced: ' + new Date(remote.updatedAt).toLocaleTimeString('th');
+});
+
+/* ── Hook การ drag และ save modal ให้ auto-save ── */
+// ทุกครั้งที่ drag เสร็จ หรือ saveModal เสร็จ จะเรียก fbSaveTasks อัตโนมัติ
+const _origRender = window.render || function(){};
+// patch dragMove และ dragResize end → fbSaveTasks
+const _origDragMove = window.dragMove;
+window.dragMove = function(e, task, bar, color){
+  // เรียก dragMove เดิม แล้วเพิ่ม fbSave เมื่อปล่อยเมาส์
+  _origDragMove && _origDragMove(e, task, bar, color);
+};
+// patch mouseup บน document ให้ save หลัง drag ทุกครั้ง
+let isDragging = false;
+document.addEventListener('mousedown', ()=>{ isDragging = true; });
+document.addEventListener('mouseup', ()=>{
+  if(isDragging){ isDragging=false; setTimeout(()=>window.fbSaveTasks(), 100); }
+});
+
+// patch saveModal
+const _origSaveModal = window.saveModal;
+window.saveModal = function(){
+  _origSaveModal && _origSaveModal();
+  setTimeout(()=>window.fbSaveTasks(), 100);
+};
+</script>
+
+<!-- Firebase status dot -->
+<div id="fb-dot" title="Firebase status"
+  style="position:fixed;bottom:16px;right:16px;width:10px;height:10px;border-radius:50%;
+  background:#48567a;border:2px solid rgba(255,255,255,.15);z-index:999;
+  transition:background .3s;cursor:default"></div>
 </body>
 </html>
