@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Component Inventory v2 — UI Redesign 2025</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#111418;--surface:#1a1f26;--surface2:#222831;
+  --border:#2e3540;--border2:#3a4250;
+  --text:#e8edf5;--text2:#8a95a8;--text3:#5a6478;
+  --accent:#4f9eff;--accent-dim:rgba(79,158,255,.12);
+  --green:#34c97a;--green-dim:rgba(52,201,122,.12);
+  --yellow:#f5c842;--red:#ff5f5f;--red-dim:rgba(255,95,95,.12);
+  --orange:#ff8c42;--purple:#a78bfa;
+}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--text);font-family:'IBM Plex Sans Thai',sans-serif;font-size:13px}
+
+/* ── TOPBAR ── */
+.topbar{height:50px;background:var(--surface);border-bottom:1px solid var(--border);
+  padding:0 22px;display:flex;align-items:center;gap:16px;flex-shrink:0;position:relative;z-index:200}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:3px;color:var(--accent);white-space:nowrap}
+.sep{width:1px;height:22px;background:var(--border2)}
+.doc-meta{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text3);letter-spacing:.5px}
+.topbar-right{margin-left:auto;display:flex;gap:8px;align-items:center}
+.btn{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.5px;
+  padding:6px 13px;border:1px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer;transition:all .15s}
+.btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
+.btn.primary{background:var(--accent);color:var(--bg);border-color:var(--accent);font-weight:600}
+.btn.primary:hover{background:#6aaeff;color:var(--bg)}
+.btn.danger{border-color:var(--red);color:var(--red)}
+.btn.danger:hover{background:var(--red-dim)}
+
+/* ── LAYOUT ── */
+.app{display:flex;height:calc(100vh - 50px);overflow:hidden}
+
+/* ── SIDEBAR ── */
+.sidebar{width:210px;min-width:210px;background:var(--surface);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;overflow:hidden}
+.sb-section{padding:14px 14px 6px}
+.sb-title{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;
+  text-transform:uppercase;color:var(--text3);margin-bottom:8px}
+.cat-btn{display:flex;align-items:center;gap:9px;padding:7px 9px;width:100%;
+  background:transparent;border:none;color:var(--text2);cursor:pointer;text-align:left;
+  font-size:12px;font-family:'IBM Plex Sans Thai',sans-serif;border-radius:3px;
+  transition:all .12s;margin-bottom:2px}
+.cat-btn:hover{background:var(--surface2);color:var(--text)}
+.cat-btn.active{background:var(--accent-dim);color:var(--accent)}
+.cat-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.cat-count{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text3)}
+.sb-stats{margin-top:auto;padding:14px;border-top:1px solid var(--border)}
+.stat-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;font-size:12px}
+.stat-row .lbl{color:var(--text3)}.stat-row .val{font-family:'JetBrains Mono',monospace;font-weight:600}
+.prog-wrap{height:4px;background:var(--surface2);border-radius:2px;overflow:hidden;margin-bottom:10px}
+.prog-fill{height:100%;border-radius:2px;background:var(--green);transition:width .4s ease}
+
+/* ── MAIN ── */
+.main{flex:1;overflow:hidden;display:flex;flex-direction:column}
+
+/* ── TOOLBAR ── */
+.toolbar{display:flex;align-items:center;gap:10px;padding:12px 18px;border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap}
+.search-wrap{position:relative;flex:1;min-width:160px}
+.search-icon{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:13px;pointer-events:none}
+input[type=text]{width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);
+  padding:7px 10px 7px 30px;font-family:'IBM Plex Sans Thai',sans-serif;font-size:12px;outline:none;transition:border-color .15s}
+input[type=text]:focus{border-color:var(--accent)}
+input[type=text]::placeholder{color:var(--text3)}
+.fsel{background:var(--surface);border:1px solid var(--border);color:var(--text2);
+  padding:7px 10px;font-family:'JetBrains Mono',monospace;font-size:10px;outline:none;cursor:pointer}
+.fsel:focus{border-color:var(--accent)}
+
+/* ── SUMMARY CARDS ── */
+.sum-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:12px 18px;flex-shrink:0}
+.sum-card{background:var(--surface);border:1px solid var(--border);padding:12px 14px;position:relative;overflow:hidden}
+.sum-card::after{content:'';position:absolute;top:0;left:0;width:3px;height:100%}
+.sc-total::after{background:var(--accent)}.sc-done::after{background:var(--green)}
+.sc-inprog::after{background:var(--yellow)}.sc-todo::after{background:var(--text3)}
+.sc-num{font-family:'Bebas Neue',sans-serif;font-size:34px;line-height:1;margin-bottom:2px}
+.sc-total .sc-num{color:var(--accent)}.sc-done .sc-num{color:var(--green)}
+.sc-inprog .sc-num{color:var(--yellow)}.sc-todo .sc-num{color:var(--text2)}
+.sc-lbl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;font-family:'JetBrains Mono',monospace}
+
+/* ── TABLE CONTAINER ── */
+.table-container{flex:1;overflow:auto;padding:0 18px 18px}
+
+/* ── TABLE ── */
+.tbl{width:100%;border-collapse:collapse;min-width:900px}
+.tbl thead th{background:var(--surface2);padding:8px 11px;font-family:'JetBrains Mono',monospace;
+  font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);
+  border-bottom:1px solid var(--border2);text-align:left;cursor:pointer;white-space:nowrap;position:sticky;top:0;z-index:10}
+.tbl thead th:hover{color:var(--accent)}
+.tbl thead th.sort-active{color:var(--accent)}
+
+/* group row */
+.tr-group{background:var(--surface);cursor:pointer;transition:background .1s}
+.tr-group:hover{background:#1f252f}
+.tr-group td{padding:9px 11px;border-bottom:1px solid var(--border)}
+.grp-toggle{font-size:10px;color:var(--text3);transition:transform .2s;display:inline-block;margin-right:4px}
+.grp-toggle.open{transform:rotate(90deg)}
+
+/* task row */
+.tr-task{transition:background .1s;cursor:pointer}
+.tr-task:hover{background:rgba(255,255,255,.02)}
+.tr-task td{padding:8px 11px;border-bottom:1px solid rgba(255,255,255,.03)}
+.tr-task.indent td:first-child{padding-left:36px}
+
+/* sub row */
+.tr-sub{background:rgba(0,0,0,.12)}
+.tr-sub:hover{background:rgba(255,255,255,.015)}
+.tr-sub td{padding:7px 11px;border-bottom:1px solid rgba(255,255,255,.025);font-size:12px}
+.tr-sub.indent td:first-child{padding-left:52px}
+
+/* pills */
+.cat-badge{font-family:'JetBrains Mono',monospace;font-size:9px;padding:2px 6px;letter-spacing:.3px;white-space:nowrap}
+.status-pill{font-family:'JetBrains Mono',monospace;font-size:9px;padding:2px 7px;letter-spacing:.3px;white-space:nowrap}
+.complexity-dots{display:flex;gap:3px;align-items:center}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--border2)}
+.dot.on{background:var(--yellow)}.dot.on.hi{background:var(--red)}.dot.on.lo{background:var(--green)}
+.mod-wrap{display:flex;align-items:center;gap:5px}
+.mod-bar{height:3px;background:var(--accent);border-radius:2px;flex-shrink:0}
+.mod-num{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--accent);white-space:nowrap}
+.sub-count{font-family:'JetBrains Mono',monospace;font-size:9px;padding:2px 6px;
+  background:rgba(79,158,255,.1);color:var(--accent);border:1px solid rgba(79,158,255,.2)}
+.icon-btn{width:24px;height:24px;background:transparent;border:1px solid var(--border);
+  color:var(--text3);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;
+  font-size:12px;transition:all .12s;margin:0 2px}
+.icon-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
+.icon-btn.del:hover{border-color:var(--red);color:var(--red);background:var(--red-dim)}
+.empty-state{padding:40px;text-align:center;color:var(--text3);font-size:13px}
+
+/* ── MODAL ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:500;
+  display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+.overlay.open{opacity:1;pointer-events:all}
+.modal{background:var(--surface);border:1px solid var(--border2);width:580px;max-width:96vw;
+  max-height:92vh;overflow:auto;box-shadow:0 24px 60px rgba(0,0,0,.6);
+  transform:translateY(10px);transition:transform .2s}
+.overlay.open .modal{transform:translateY(0)}
+.mh{padding:18px 22px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.mt{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--accent)}
+.mb{padding:18px 22px}
+.mf{padding:12px 22px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px}
+.fg{margin-bottom:14px}
+.fl{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1.5px;
+  text-transform:uppercase;color:var(--text3);margin-bottom:5px;display:block}
+.fi{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);
+  padding:8px 10px;font-family:'IBM Plex Sans Thai',sans-serif;font-size:13px;outline:none;transition:border-color .15s}
+.fi:focus{border-color:var(--accent)}
+.fselm{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);
+  padding:8px 10px;font-family:'IBM Plex Sans Thai',sans-serif;font-size:13px;outline:none;cursor:pointer}
+.fselm:focus{border-color:var(--accent)}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.frow3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.fta{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);
+  padding:8px 10px;font-family:'IBM Plex Sans Thai',sans-serif;font-size:12px;
+  outline:none;resize:vertical;min-height:56px;line-height:1.5}
+.fta:focus{border-color:var(--accent)}
+
+/* module chips */
+.mod-chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.mc{font-family:'JetBrains Mono',monospace;font-size:9px;padding:3px 7px;
+  background:var(--accent-dim);color:var(--accent);border:1px solid rgba(79,158,255,.2);
+  cursor:pointer;transition:all .12s}
+.mc:hover{background:var(--red-dim);color:var(--red);border-color:rgba(255,95,95,.25)}
+.mc.sel{background:var(--accent);color:var(--bg)}
+
+/* sub-component list inside modal */
+.sub-list-modal{border:1px solid var(--border);overflow:hidden;margin-top:6px}
+.sub-list-item{display:flex;align-items:center;gap:8px;padding:7px 10px;
+  border-bottom:1px solid var(--border);font-size:12px}
+.sub-list-item:last-child{border-bottom:none}
+.sli-name{flex:1;color:var(--text)}
+.sli-status{font-family:'JetBrains Mono',monospace;font-size:9px;padding:2px 6px}
+.sli-assignee{font-size:11px;color:var(--text3);min-width:70px}
+.sli-del{background:transparent;border:none;color:var(--text3);cursor:pointer;font-size:13px;padding:0 3px;transition:color .12s}
+.sli-del:hover{color:var(--red)}
+.add-sub-wrap{display:flex;gap:6px;margin-top:7px;align-items:center}
+
+/* toast */
+.toast{position:fixed;bottom:20px;right:20px;background:var(--surface2);border:1px solid var(--green);
+  color:var(--green);padding:9px 14px;font-family:'JetBrains Mono',monospace;font-size:11px;
+  letter-spacing:.5px;z-index:9999;transform:translateY(12px);opacity:0;transition:all .25s}
+.toast.show{transform:translateY(0);opacity:1}
+
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="logo">COMP/INV</div>
+  <div class="sep"></div>
+  <div class="doc-meta">UI-REDESIGN-2025 · Component Inventory v2.0</div>
+  <div class="topbar-right">
+    <button class="btn" onclick="exportCSV()">⬇ Export CSV</button>
+    <button class="btn primary" onclick="openAdd(null)">＋ Add Component</button>
+  </div>
+</div>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sb-section">
+      <div class="sb-title">หมวดหมู่</div>
+      <button class="cat-btn active" onclick="filterCat('all')" id="cat-all">
+        <span class="cat-dot" style="background:#8a95a8"></span>ทั้งหมด<span class="cat-count" id="cnt-all">0</span>
+      </button>
+      <button class="cat-btn" onclick="filterCat('Form')" id="cat-Form">
+        <span class="cat-dot" style="background:var(--accent)"></span>Form & Input<span class="cat-count" id="cnt-Form">0</span>
+      </button>
+      <button class="cat-btn" onclick="filterCat('Data Display')" id="cat-Data Display">
+        <span class="cat-dot" style="background:var(--green)"></span>Data Display<span class="cat-count" id="cnt-Data Display">0</span>
+      </button>
+      <button class="cat-btn" onclick="filterCat('Navigation')" id="cat-Navigation">
+        <span class="cat-dot" style="background:var(--yellow)"></span>Navigation<span class="cat-count" id="cnt-Navigation">0</span>
+      </button>
+      <button class="cat-btn" onclick="filterCat('Feedback')" id="cat-Feedback">
+        <span class="cat-dot" style="background:var(--orange)"></span>Feedback<span class="cat-count" id="cnt-Feedback">0</span>
+      </button>
+      <button class="cat-btn" onclick="filterCat('Layout')" id="cat-Layout">
+        <span class="cat-dot" style="background:var(--purple)"></span>Layout<span class="cat-count" id="cnt-Layout">0</span>
+      </button>
+      <button class="cat-btn" onclick="filterCat('Action')" id="cat-Action">
+        <span class="cat-dot" style="background:var(--red)"></span>Action<span class="cat-count" id="cnt-Action">0</span>
+      </button>
+    </div>
+    <div class="sb-stats">
+      <div class="sb-title" style="margin-bottom:10px">Progress</div>
+      <div class="prog-wrap"><div class="prog-fill" id="prog-bar" style="width:0%"></div></div>
+      <div class="stat-row"><span class="lbl">เสร็จแล้ว</span><span class="val" style="color:var(--green)" id="s-done">0</span></div>
+      <div class="stat-row"><span class="lbl">กำลังทำ</span><span class="val" style="color:var(--yellow)" id="s-inprog">0</span></div>
+      <div class="stat-row"><span class="lbl">ยังไม่เริ่ม</span><span class="val" style="color:var(--text3)" id="s-todo">0</span></div>
+      <div class="stat-row"><span class="lbl">Sub-components</span><span class="val" style="color:var(--purple)" id="s-sub">0</span></div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+    <!-- TOOLBAR -->
+    <div class="toolbar">
+      <div class="search-wrap">
+        <span class="search-icon">⌕</span>
+        <input type="text" id="search-input" placeholder="ค้นหา component..." oninput="renderTable()">
+      </div>
+      <select class="fsel" id="f-status-filter" onchange="renderTable()">
+        <option value="all">Status: ทั้งหมด</option>
+        <option value="To Do">To Do</option>
+        <option value="In Progress">In Progress</option>
+        <option value="Review">Review</option>
+        <option value="Done">Done</option>
+      </select>
+      <select class="fsel" id="f-cx-filter" onchange="renderTable()">
+        <option value="all">Complexity: ทั้งหมด</option>
+        <option value="Low">Low</option>
+        <option value="Medium">Medium</option>
+        <option value="High">High</option>
+      </select>
+    </div>
+
+    <!-- SUMMARY -->
+    <div class="sum-grid">
+      <div class="sum-card sc-total"><div class="sc-num" id="sum-total">0</div><div class="sc-lbl">Total</div></div>
+      <div class="sum-card sc-done"><div class="sc-num" id="sum-done">0</div><div class="sc-lbl">Done</div></div>
+      <div class="sum-card sc-inprog"><div class="sc-num" id="sum-inprog">0</div><div class="sc-lbl">In Progress</div></div>
+      <div class="sum-card sc-todo"><div class="sc-num" id="sum-todo">0</div><div class="sc-lbl">To Do</div></div>
+    </div>
+
+    <!-- TABLE -->
+    <div class="table-container">
+      <table class="tbl" id="main-table">
+        <thead>
+          <tr>
+            <th style="width:28px"></th>
+            <th onclick="sortBy('name')">Component <span id="sort-name"></span></th>
+            <th onclick="sortBy('category')" style="width:120px">Category <span id="sort-category"></span></th>
+            <th onclick="sortBy('status')" style="width:100px">Status <span id="sort-status"></span></th>
+            <th onclick="sortBy('complexity')" style="width:70px">Level <span id="sort-complexity"></span></th>
+            <th onclick="sortBy('assignee')" style="width:110px">Assignee <span id="sort-assignee"></span></th>
+            <th onclick="sortBy('modules')" style="width:110px">Modules <span id="sort-modules"></span></th>
+            <th onclick="sortBy('due')" style="width:90px">Due <span id="sort-due"></span></th>
+            <th style="width:90px">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="tbl-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="overlay" id="overlay" onclick="overlayClick(event)">
+  <div class="modal">
+    <div class="mh">
+      <div class="mt" id="modal-title">ADD COMPONENT</div>
+      <button class="btn" onclick="closeModal()">✕</button>
+    </div>
+    <div class="mb" id="modal-body"></div>
+    <div class="mf">
+      <div id="modal-left-actions"></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn" onclick="closeModal()">ยกเลิก</button>
+        <button class="btn primary" onclick="saveModal()">บันทึก</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ═══════════ DATA ═══════════ */
+const MODULES=['M01','M02','M03','M04','M05','M06','M07','M08','M09','M10','M11','M12','M13','M14','M15','M16','M17'];
+const CATEGORIES=['Form & Input','Data Display','Navigation','Feedback','Layout','Action'];
+const STATUSES=['To Do','In Progress','Review','Done'];
+const COMPLEXITIES=['Low','Medium','High'];
+const CX_LVL={Low:1,Medium:2,High:3};
+
+const CAT_COLOR={'Form':'#4f9eff','Data Display':'#34c97a','Navigation':'#f5c842',
+  'Feedback':'#ff8c42','Layout':'#a78bfa','Action':'#ff5f5f'};
+const STATUS_COLOR={
+  'To Do':{bg:'rgba(90,100,120,.15)',c:'#8a95a8'},
+  'In Progress':{bg:'rgba(245,200,66,.14)',c:'#f5c842'},
+  'Review':{bg:'rgba(79,158,255,.14)',c:'#4f9eff'},
+  'Done':{bg:'rgba(52,201,122,.14)',c:'#34c97a'}
+};
+
+function catColor(cat){for(const k in CAT_COLOR)if(cat.includes(k))return CAT_COLOR[k];return '#8a95a8'}
+
+let nextId=200;
+function newId(){return 'c'+(nextId++)}
+
+let components=[
+  {id:'c1',name:'Text Input',nameEn:'Text Input',category:'Form & Input',status:'To Do',complexity:'Low',
+   assignee:'',due:'',figma:'',notes:'default/disabled/error/success state',modules:['M01','M02','M03'],expanded:false,
+   subs:[
+     {id:'cs1a',name:'Single line input',status:'To Do',assignee:'',notes:''},
+     {id:'cs1b',name:'Multiline / Textarea',status:'To Do',assignee:'',notes:''},
+     {id:'cs1c',name:'Input with prefix/suffix icon',status:'To Do',assignee:'',notes:''},
+   ]},
+  {id:'c2',name:'Dropdown / Select',nameEn:'Dropdown Select',category:'Form & Input',status:'To Do',complexity:'Medium',
+   assignee:'',due:'',figma:'',notes:'Single + Multi select',modules:['M01','M04','M05','M07','M09'],expanded:false,
+   subs:[
+     {id:'cs2a',name:'Single Select',status:'To Do',assignee:'',notes:''},
+     {id:'cs2b',name:'Multi Select + Tags',status:'To Do',assignee:'',notes:''},
+   ]},
+  {id:'c3',name:'Date Picker',nameEn:'Date Picker',category:'Form & Input',status:'To Do',complexity:'High',
+   assignee:'',due:'',figma:'',notes:'Single + Date Range',modules:['M03','M06','M10'],expanded:false,
+   subs:[
+     {id:'cs3a',name:'Single Date',status:'To Do',assignee:'',notes:''},
+     {id:'cs3b',name:'Date Range',status:'To Do',assignee:'',notes:''},
+   ]},
+  {id:'c4',name:'Checkbox',nameEn:'Checkbox',category:'Form & Input',status:'To Do',complexity:'Low',
+   assignee:'',due:'',figma:'',notes:'',modules:['M01','M02','M08'],expanded:false,subs:[]},
+  {id:'c5',name:'Radio Button',nameEn:'Radio Button',category:'Form & Input',status:'To Do',complexity:'Low',
+   assignee:'',due:'',figma:'',notes:'',modules:['M03','M05'],expanded:false,subs:[]},
+  {id:'c6',name:'Search Bar',nameEn:'Search Bar',category:'Form & Input',status:'To Do',complexity:'Medium',
+   assignee:'',due:'',figma:'',notes:'พร้อม filter dropdown',modules:['M01','M02','M04','M06','M11'],expanded:false,subs:[
+     {id:'cs6a',name:'Basic Search',status:'To Do',assignee:'',notes:''},
+     {id:'cs6b',name:'Search + Filter Panel',status:'To Do',assignee:'',notes:''},
+   ]},
+  {id:'c7',name:'ตารางข้อมูล',nameEn:'Data Table',category:'Data Display',status:'To Do',complexity:'High',
+   assignee:'',due:'',figma:'',notes:'Sort, Filter, Pagination, Row selection',
+   modules:['M01','M02','M04','M06','M08','M11','M12','M14'],expanded:false,
+   subs:[
+     {id:'cs7a',name:'Basic Table',status:'To Do',assignee:'',notes:''},
+     {id:'cs7b',name:'Sortable columns',status:'To Do',assignee:'',notes:''},
+     {id:'cs7c',name:'Row selection + bulk actions',status:'To Do',assignee:'',notes:''},
+     {id:'cs7d',name:'Expandable rows',status:'To Do',assignee:'',notes:''},
+   ]},
+  {id:'c8',name:'Card',nameEn:'Card',category:'Data Display',status:'To Do',complexity:'Low',
+   assignee:'',due:'',figma:'',notes:'Basic + Action card',modules:['M05','M09','M13'],expanded:false,subs:[]},
+  {id:'c9',name:'Badge / Tag',nameEn:'Badge Tag',category:'Data Display',status:'To Do',complexity:'Low',
+   assignee:'',due:'',figma:'',notes:'Status badge + Category tag',modules:['M01','M02','M07','M14'],expanded:false,subs:[]},
+  {id:'c10',name:'Pagination',nameEn:'Pagination',category:'Data Display',status:'To Do',complexity:'Medium',
+   assignee:'',due:'',figma:'',notes:'',modules:['M01','M02','M04','M06','M11','M12'],expanded:false,subs:[]},
+  {id:'c11',name:'Empty State',nameEn:'Empty State',category:'Data Display',status:'To Do',complexity:'Low',
+   assignee:'',due:'',figma:'',notes:'',modules:['M01','M02','M04','M08'],expanded:false,subs:[]},
+  {id:'c12',name:'Sidebar',nameEn:'Sidebar Nav',category:'Navigation',status:'To Do',complexity:'High',
+   assignee:'',due:'',figma:'',notes:'Global sidebar ใช้ทุก module',
+   modules:['M01','M02','M03','M04','M05','M06','M07','M08','M09','M10','M11','M12','M13','M14','M15','M16','M17'],expanded:false,
+   subs:[
+     {id:'cs12a',name:'Collapsed state',status:'To Do',assignee:'',notes:''},
+     {id:'cs12b',name:'Expanded state',status:'To Do',assignee:'',notes:''},
+     {id:'cs12c',name:'Active / hover states',status:'To Do',assignee:'',notes:''},
+   ]},
+  {id:'c13',name:'Breadcrumb',nameEn:'Breadcrumb',category:'Navigation',status:'To Do',complexity:'Low',
+   assignee:'',due:'',figma:'',notes:'',modules:['M03','M06','M10','M14'],expanded:false,subs:[]},
+  {id:'c14',name:'Tab',nameEn:'Tab',category:'Navigation',status:'To Do',complexity:'Medium',
+   assignee:'',due:'',figma:'',notes:'Horizontal + Vertical',modules:['M04','M07','M11','M15'],expanded:false,subs:[]},
+  {id:'c15',name:'Toast / Notification',nameEn:'Toast',category:'Feedback',status:'To Do',complexity:'Medium',
+   assignee:'',due:'',figma:'',notes:'Success/Error/Warning/Info',modules:['M01','M02','M03','M04','M05'],expanded:false,subs:[]},
+  {id:'c16',name:'Modal / Dialog',nameEn:'Modal',category:'Feedback',status:'To Do',complexity:'High',
+   assignee:'',due:'',figma:'',notes:'Confirm dialog + Form modal',modules:['M01','M03','M06','M08','M11','M14'],expanded:false,
+   subs:[
+     {id:'cs16a',name:'Confirm Dialog (small)',status:'To Do',assignee:'',notes:''},
+     {id:'cs16b',name:'Form Modal (medium)',status:'To Do',assignee:'',notes:''},
+     {id:'cs16c',name:'Full-page Modal (large)',status:'To Do',assignee:'',notes:''},
+   ]},
+  {id:'c17',name:'Loading / Spinner',nameEn:'Loading',category:'Feedback',status:'To Do',complexity:'Low',
+   assignee:'',due:'',figma:'',notes:'Inline + Full-page overlay',modules:['M01','M02','M03','M04'],expanded:false,subs:[]},
+  {id:'c18',name:'Button',nameEn:'Button',category:'Action',status:'To Do',complexity:'Low',
+   assignee:'',due:'',figma:'',notes:'Primary/Secondary/Ghost/Danger + sizes',
+   modules:['M01','M02','M03','M04','M05','M06','M07','M08','M09','M10','M11','M12','M13','M14','M15','M16','M17'],expanded:false,
+   subs:[
+     {id:'cs18a',name:'Primary Button',status:'To Do',assignee:'',notes:''},
+     {id:'cs18b',name:'Secondary Button',status:'To Do',assignee:'',notes:''},
+     {id:'cs18c',name:'Ghost / Outline',status:'To Do',assignee:'',notes:''},
+     {id:'cs18d',name:'Danger Button',status:'To Do',assignee:'',notes:''},
+   ]},
+  {id:'c19',name:'Icon Button',nameEn:'Icon Button',category:'Action',status:'To Do',complexity:'Low',
+   assignee:'',due:'',figma:'',notes:'',modules:['M01','M04','M06','M11'],expanded:false,subs:[]},
+  {id:'c20',name:'Page Container',nameEn:'Page Container',category:'Layout',status:'To Do',complexity:'Medium',
+   assignee:'',due:'',figma:'',notes:'Header + Content + standard padding',
+   modules:['M01','M02','M03','M04','M05','M06','M07','M08','M09','M10'],expanded:false,subs:[]},
+];
+
+let currentCat='all', sortField='id', sortDir=1;
+let editingId=null, pendingSubs=[], selectedMods=[];
+
+/* ═══════════ RENDER TABLE ═══════════ */
+function getFiltered(){
+  const q=document.getElementById('search-input').value.toLowerCase();
+  const st=document.getElementById('f-status-filter').value;
+  const cx=document.getElementById('f-cx-filter').value;
+  return components.filter(c=>{
+    const matchCat=currentCat==='all'||c.category.includes(currentCat);
+    const matchQ=!q||c.name.toLowerCase().includes(q)||c.nameEn.toLowerCase().includes(q);
+    const matchSt=st==='all'||c.status===st;
+    const matchCx=cx==='all'||c.complexity===cx;
+    return matchCat&&matchQ&&matchSt&&matchCx;
+  });
+}
+
+function renderTable(){
+  const filtered=getFiltered();
+  filtered.sort((a,b)=>{
+    let va=a[sortField],vb=b[sortField];
+    if(sortField==='modules'){va=a.modules.length;vb=b.modules.length}
+    if(sortField==='complexity'){va=CX_LVL[a.complexity]||1;vb=CX_LVL[b.complexity]||1}
+    if(typeof va==='string')return va.localeCompare(vb)*sortDir;
+    return (va-vb)*sortDir;
+  });
+  const tbody=document.getElementById('tbl-body');
+  if(!filtered.length){tbody.innerHTML=`<tr><td colspan="9"><div class="empty-state">ไม่พบ component</div></td></tr>`;updateStats();return}
+  const rows=[];
+  filtered.forEach((c,i)=>{
+    rows.push(buildCompRow(c,i));
+    if(c.expanded&&c.subs&&c.subs.length)c.subs.forEach(s=>rows.push(buildSubRow(s,c)));
+  });
+  tbody.innerHTML=rows.join('');
+  updateStats();
+}
+
+function buildCompRow(c,idx){
+  const sc=STATUS_COLOR[c.status]||STATUS_COLOR['To Do'];
+  const cc=catColor(c.category);
+  const cx=CX_LVL[c.complexity]||1;
+  const hasSubs=c.subs&&c.subs.length>0;
+  const maxM=17;
+  const modPct=((c.modules.length/maxM)*60).toFixed(0);
+  const dots=[1,2,3].map(d=>`<div class="dot${d<=cx?(cx===3?' on hi':cx===1?' on lo':' on'):''}"></div>`).join('');
+  const catShort=c.category.replace('& Input','').replace('Display','').trim();
+  return `<tr class="tr-task" onclick="openEdit('${c.id}')">
+    <td style="text-align:center">
+      <span class="icon-btn" onclick="event.stopPropagation();toggleExpand('${c.id}')" title="${hasSubs?'Toggle sub-components':'No sub-components'}">
+        ${hasSubs?(c.expanded?'▾':'▸'):'·'}
+      </span>
+    </td>
+    <td>
+      <div style="font-weight:600;font-size:13px">${c.name}</div>
+      <div style="font-size:10px;color:var(--text3)">${c.nameEn}${hasSubs?` · <span style="color:var(--purple)">${c.subs.length} sub</span>`:''}</div>
+    </td>
+    <td><span class="cat-badge" style="background:${cc}22;color:${cc};border:1px solid ${cc}44">${catShort}</span></td>
+    <td><span class="status-pill" style="background:${sc.bg};color:${sc.c}">${c.status}</span></td>
+    <td><div class="complexity-dots">${dots}</div></td>
+    <td style="font-size:12px;color:var(--text2)">${c.assignee||'—'}</td>
+    <td><div class="mod-wrap"><div class="mod-bar" style="width:${modPct}px"></div><span class="mod-num">${c.modules.length}</span></div></td>
+    <td style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text3)">${c.due||'—'}</td>
+    <td onclick="event.stopPropagation()">
+      <button class="icon-btn" onclick="openAdd(null,'${c.id}')" title="Add sub-component">⊕</button>
+      <button class="icon-btn" onclick="openEdit('${c.id}')" title="Edit">✎</button>
+      <button class="icon-btn del" onclick="deleteComp('${c.id}')" title="Delete">✕</button>
+    </td>
+  </tr>`;
+}
+
+function buildSubRow(s,parent){
+  const sc=STATUS_COLOR[s.status]||STATUS_COLOR['To Do'];
+  return `<tr class="tr-sub" onclick="openEditSub('${parent.id}','${s.id}')">
+    <td></td>
+    <td style="padding-left:36px">
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="color:var(--text3);font-size:10px">└</span>
+        <span style="font-size:12px">${s.name}</span>
+      </div>
+    </td>
+    <td><span style="font-size:10px;color:var(--text3)">sub</span></td>
+    <td><span class="status-pill" style="background:${sc.bg};color:${sc.c}">${s.status}</span></td>
+    <td></td>
+    <td style="font-size:11px;color:var(--text3)">${s.assignee||'—'}</td>
+    <td></td>
+    <td></td>
+    <td onclick="event.stopPropagation()">
+      <button class="icon-btn" onclick="openEditSub('${parent.id}','${s.id}')" title="Edit">✎</button>
+      <button class="icon-btn del" onclick="deleteSub('${parent.id}','${s.id}')" title="Delete">✕</button>
+    </td>
+  </tr>`;
+}
+
+function toggleExpand(id){
+  const c=components.find(x=>x.id===id);
+  if(c)c.expanded=!c.expanded;
+  renderTable();
+}
+
+/* ═══════════ STATS ═══════════ */
+function updateStats(){
+  const all=components;
+  const allSubs=all.flatMap(c=>c.subs||[]);
+  const done=all.filter(c=>c.status==='Done').length;
+  const inprog=all.filter(c=>c.status==='In Progress'||c.status==='Review').length;
+  const todo=all.filter(c=>c.status==='To Do').length;
+  document.getElementById('sum-total').textContent=all.length;
+  document.getElementById('sum-done').textContent=done;
+  document.getElementById('sum-inprog').textContent=inprog;
+  document.getElementById('sum-todo').textContent=todo;
+  document.getElementById('s-done').textContent=done;
+  document.getElementById('s-inprog').textContent=inprog;
+  document.getElementById('s-todo').textContent=todo;
+  document.getElementById('s-sub').textContent=allSubs.length;
+  document.getElementById('prog-bar').style.width=(all.length?(done/all.length*100).toFixed(0):0)+'%';
+  const cats=['all','Form','Data Display','Navigation','Feedback','Layout','Action'];
+  cats.forEach(cat=>{
+    const n=cat==='all'?all.length:all.filter(c=>c.category.includes(cat)).length;
+    const el=document.getElementById('cnt-'+cat);
+    if(el)el.textContent=n;
+  });
+}
+
+function filterCat(cat){
+  currentCat=cat;
+  document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('cat-'+cat)?.classList.add('active');
+  renderTable();
+}
+
+function sortBy(f){
+  if(sortField===f)sortDir*=-1;else{sortField=f;sortDir=1}
+  document.querySelectorAll('[id^=sort-]').forEach(el=>{el.textContent='';el.parentElement.classList.remove('sort-active')});
+  const el=document.getElementById('sort-'+f);
+  if(el){el.textContent=sortDir===1?'↑':'↓';el.parentElement.classList.add('sort-active')}
+  renderTable();
+}
+
+/* ═══════════ MODAL — COMPONENT ═══════════ */
+function openAdd(parentCompId=null, forSubOf=null){
+  editingId=null;
+  pendingSubs=[];
+  selectedMods=[];
+  const isSubOf=forSubOf;
+  if(isSubOf){
+    // Adding sub-component to existing parent
+    openEditSub(forSubOf, null);
+    return;
+  }
+  document.getElementById('modal-title').textContent='ADD COMPONENT';
+  document.getElementById('modal-left-actions').innerHTML='';
+  renderCompForm({name:'',nameEn:'',category:'Form & Input',status:'To Do',complexity:'Medium',
+    assignee:'',due:'',figma:'',notes:'',modules:[],subs:[]});
+  document.getElementById('overlay').classList.add('open');
+}
+
+function openEdit(id){
+  const c=components.find(x=>x.id===id);
+  if(!c)return;
+  editingId=id;
+  pendingSubs=JSON.parse(JSON.stringify(c.subs||[]));
+  selectedMods=[...c.modules];
+  document.getElementById('modal-title').textContent='EDIT — '+c.name;
+  document.getElementById('modal-left-actions').innerHTML=
+    `<button class="btn danger" onclick="deleteComp('${id}');closeModal()">🗑 ลบ</button>`;
+  renderCompForm(c);
+  document.getElementById('overlay').classList.add('open');
+}
+
+function renderCompForm(c){
+  const body=document.getElementById('modal-body');
+  body.innerHTML=`
+    <div class="frow">
+      <div class="fg"><label class="fl">ชื่อ (ไทย)</label><input class="fi" id="f-name" value="${esc(c.name)}" placeholder="เช่น ตารางข้อมูล"></div>
+      <div class="fg"><label class="fl">Name (EN)</label><input class="fi" id="f-name-en" value="${esc(c.nameEn||'')}" placeholder="e.g. Data Table"></div>
+    </div>
+    <div class="frow3">
+      <div class="fg"><label class="fl">Category</label>
+        <select class="fselm" id="f-cat">${CATEGORIES.map(x=>`<option${c.category===x?' selected':''}>${x}</option>`).join('')}</select>
+      </div>
+      <div class="fg"><label class="fl">Complexity</label>
+        <select class="fselm" id="f-cx">${COMPLEXITIES.map(x=>`<option${c.complexity===x?' selected':''}>${x}</option>`).join('')}</select>
+      </div>
+      <div class="fg"><label class="fl">Status</label>
+        <select class="fselm" id="f-st">${STATUSES.map(x=>`<option${c.status===x?' selected':''}>${x}</option>`).join('')}</select>
+      </div>
+    </div>
+    <div class="frow">
+      <div class="fg"><label class="fl">Assignee</label><input class="fi" id="f-assignee" value="${esc(c.assignee||'')}" placeholder="ชื่อผู้รับผิดชอบ"></div>
+      <div class="fg"><label class="fl">Due Date</label><input type="date" class="fi" id="f-due" value="${c.due||''}"></div>
+    </div>
+    <div class="fg"><label class="fl">Figma Link</label><input class="fi" id="f-figma" value="${esc(c.figma||'')}" placeholder="https://figma.com/..."></div>
+    <div class="fg"><label class="fl">หมายเหตุ / Variants</label><textarea class="fta" id="f-notes">${esc(c.notes||'')}</textarea></div>
+    <div class="fg">
+      <label class="fl">Modules ที่ใช้ Component นี้</label>
+      <div class="mod-chips" id="mod-chips"></div>
+    </div>
+    <div class="fg">
+      <label class="fl">Sub-components <span style="color:var(--purple);margin-left:4px">${pendingSubs.length} รายการ</span></label>
+      <div class="sub-list-modal" id="sub-list-modal">${renderSubListModal()}</div>
+      <div class="add-sub-wrap">
+        <input class="fi" id="new-sub-name" placeholder="ชื่อ sub-component..." style="flex:1">
+        <input class="fi" id="new-sub-assignee" placeholder="Assignee" style="width:110px">
+        <select class="fselm" id="new-sub-status" style="width:110px">${STATUSES.map(s=>`<option>${s}</option>`).join('')}</select>
+        <button class="btn primary" onclick="addSubModal()" style="white-space:nowrap">＋ Add</button>
+      </div>
+    </div>`;
+  renderModChips();
+}
+
+function renderSubListModal(){
+  if(!pendingSubs.length)return`<div style="padding:8px 10px;font-size:11px;color:var(--text3)">ยังไม่มี sub-component</div>`;
+  return pendingSubs.map((s,i)=>{
+    const sc=STATUS_COLOR[s.status]||STATUS_COLOR['To Do'];
+    return `<div class="sub-list-item">
+      <span class="sli-name">${s.name}</span>
+      <span class="sli-assignee">${s.assignee||'—'}</span>
+      <span class="sli-status" style="background:${sc.bg};color:${sc.c}">${s.status}</span>
+      <button class="sli-del" onclick="delSubModal(${i})">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function addSubModal(){
+  const name=document.getElementById('new-sub-name').value.trim();
+  if(!name)return;
+  pendingSubs.push({id:newId(),name,assignee:document.getElementById('new-sub-assignee').value.trim(),
+    status:document.getElementById('new-sub-status').value,notes:''});
+  document.getElementById('new-sub-name').value='';
+  document.getElementById('new-sub-assignee').value='';
+  document.getElementById('sub-list-modal').innerHTML=renderSubListModal();
+  document.querySelector('[class=fl]+div+div .fl').textContent='Sub-components '+pendingSubs.length+' รายการ';
+  toast('＋ เพิ่ม sub-component แล้ว');
+}
+
+function delSubModal(i){
+  pendingSubs.splice(i,1);
+  document.getElementById('sub-list-modal').innerHTML=renderSubListModal();
+}
+
+function renderModChips(){
+  const el=document.getElementById('mod-chips');
+  if(!el)return;
+  el.innerHTML=MODULES.map(m=>{
+    const sel=selectedMods.includes(m);
+    return `<span class="mc${sel?' sel':''}" onclick="toggleMod('${m}')">${m}</span>`;
+  }).join('');
+}
+
+function toggleMod(m){
+  selectedMods=selectedMods.includes(m)?selectedMods.filter(x=>x!==m):[...selectedMods,m];
+  renderModChips();
+}
+
+function saveModal(){
+  const name=document.getElementById('f-name')?.value.trim();
+  if(!name){toast('⚠ กรุณากรอกชื่อ');return}
+  const data={name,nameEn:document.getElementById('f-name-en').value.trim(),
+    category:document.getElementById('f-cat').value,
+    complexity:document.getElementById('f-cx').value,
+    status:document.getElementById('f-st').value,
+    assignee:document.getElementById('f-assignee').value.trim(),
+    due:document.getElementById('f-due').value,
+    figma:document.getElementById('f-figma').value.trim(),
+    notes:document.getElementById('f-notes').value,
+    modules:[...selectedMods],
+    subs:pendingSubs};
+  if(editingId){
+    const idx=components.findIndex(c=>c.id===editingId);
+    if(idx>=0)components[idx]={...components[idx],...data};
+    toast('✓ บันทึกแล้ว');
+  } else {
+    components.push({id:newId(),expanded:false,...data});
+    toast('✓ เพิ่ม component แล้ว');
+  }
+  closeModal();renderTable();
+}
+
+/* ═══════════ MODAL — SUB ═══════════ */
+let editSubParentId=null, editSubId=null;
+
+function openEditSub(parentId, subId){
+  editSubParentId=parentId;
+  editSubId=subId;
+  const parent=components.find(c=>c.id===parentId);
+  const sub=subId?parent?.subs?.find(s=>s.id===subId):null;
+  document.getElementById('modal-title').textContent=sub?'EDIT SUB-COMPONENT':'ADD SUB-COMPONENT';
+  document.getElementById('modal-left-actions').innerHTML=sub?
+    `<button class="btn danger" onclick="deleteSub('${parentId}','${subId}');closeModal()">🗑 ลบ</button>`:'';
+  const body=document.getElementById('modal-body');
+  body.innerHTML=`
+    <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text3);margin-bottom:14px;padding:6px 10px;background:var(--surface2);border:1px solid var(--border)">
+      Parent: <span style="color:var(--accent)">${parent?.name||parentId}</span>
+    </div>
+    <div class="fg"><label class="fl">ชื่อ Sub-component</label>
+      <input class="fi" id="sub-f-name" value="${esc(sub?.name||'')}" placeholder="เช่น Primary Button"></div>
+    <div class="frow">
+      <div class="fg"><label class="fl">Assignee</label>
+        <input class="fi" id="sub-f-assignee" value="${esc(sub?.assignee||'')}" placeholder="ชื่อคน"></div>
+      <div class="fg"><label class="fl">Status</label>
+        <select class="fselm" id="sub-f-status">${STATUSES.map(s=>`<option${(sub?.status===s)?' selected':''}>${s}</option>`).join('')}</select>
+      </div>
+    </div>
+    <div class="fg"><label class="fl">หมายเหตุ</label><textarea class="fta" id="sub-f-notes">${esc(sub?.notes||'')}</textarea></div>`;
+
+  // override save
+  document.querySelector('.mf .btn.primary').onclick=saveSubModal;
+  document.getElementById('overlay').classList.add('open');
+}
+
+function saveSubModal(){
+  const name=document.getElementById('sub-f-name')?.value.trim();
+  if(!name){toast('⚠ กรุณากรอกชื่อ');return}
+  const parent=components.find(c=>c.id===editSubParentId);
+  if(!parent)return;
+  parent.subs=parent.subs||[];
+  const data={name,assignee:document.getElementById('sub-f-assignee').value.trim(),
+    status:document.getElementById('sub-f-status').value,
+    notes:document.getElementById('sub-f-notes').value};
+  if(editSubId){
+    const idx=parent.subs.findIndex(s=>s.id===editSubId);
+    if(idx>=0)Object.assign(parent.subs[idx],data);
+    toast('✓ แก้ไข sub-component แล้ว');
+  } else {
+    parent.subs.push({id:newId(),...data});
+    parent.expanded=true;
+    toast('✓ เพิ่ม sub-component แล้ว');
+  }
+  closeModal();renderTable();
+}
+
+/* ═══════════ DELETE ═══════════ */
+function deleteComp(id){
+  if(!confirm('ลบ component นี้?'))return;
+  components=components.filter(c=>c.id!==id);
+  renderTable();toast('✓ ลบแล้ว');
+}
+function deleteSub(parentId,subId){
+  const parent=components.find(c=>c.id===parentId);
+  if(!parent)return;
+  parent.subs=parent.subs.filter(s=>s.id!==subId);
+  renderTable();toast('✓ ลบ sub-component แล้ว');
+}
+
+/* ═══════════ EXPORT ═══════════ */
+function exportCSV(){
+  const rows=[];
+  components.forEach((c,i)=>{
+    rows.push([i+1,c.name,c.nameEn,c.category,c.complexity,c.status,c.assignee,c.due,c.modules.join(' '),c.subs.length,c.notes]);
+    c.subs.forEach(s=>rows.push(['',`  └ ${s.name}`,'','sub','','',s.status,s.assignee,'','','',s.notes]));
+  });
+  const hd=['#','ชื่อ','Name EN','Category','Complexity','Status','Assignee','Due','Modules','Sub count','Notes'];
+  const csv=[hd,...rows].map(r=>r.map(v=>`"${String(v||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download='component-inventory-v2.csv';a.click();
+  URL.revokeObjectURL(url);toast('⬇ Export แล้ว');
+}
+
+/* ═══════════ UTILS ═══════════ */
+function closeModal(){
+  document.getElementById('overlay').classList.remove('open');
+  editingId=null;editSubParentId=null;editSubId=null;
+  // restore default save handler
+  document.querySelector('.mf .btn.primary').onclick=saveModal;
+}
+function overlayClick(e){if(e.target.id==='overlay')closeModal()}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500)}
+
+/* ═══════════ INIT ═══════════ */
+renderTable();
+</script>
+</body>
+</html>
